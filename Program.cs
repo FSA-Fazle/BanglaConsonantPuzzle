@@ -11,6 +11,9 @@ builder.Services.AddSession(options =>
 
 var app = builder.Build();
 
+// Health check for Render at root path (before UsePathBase)
+app.MapGet("/healthz", () => Results.Ok("ok"));
+
 app.UsePathBase("/consonant");
 
 if (!app.Environment.IsDevelopment())
