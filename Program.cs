@@ -11,26 +11,22 @@ builder.Services.AddSession(options =>
 
 var app = builder.Build();
 
-// Health check for Render at root path (before UsePathBase)
-app.MapGet("/healthz", () => Results.Ok("ok"));
-
 app.UsePathBase("/consonant");
 
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Home/Error");
-    app.UseHsts();
 }
 
+app.UseStaticFiles();
 app.UseRouting();
 app.UseSession();
 app.UseAuthorization();
 
-app.MapStaticAssets();
+app.MapGet("/healthz", () => "ok");
 
 app.MapControllerRoute(
     name: "default",
-    pattern: "{controller=Game}/{action=Index}/{id?}")
-    .WithStaticAssets();
+    pattern: "{controller=Game}/{action=Index}/{id?}");
 
 app.Run();
