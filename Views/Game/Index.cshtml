@@ -84,6 +84,27 @@
             box-shadow: inset 0 2px 8px rgba(0,0,0,.4), 0 0 10px rgba(79,195,247,.4);
         }
 
+        .tile.empty.selected {
+            background: rgba(79,195,247,0.25);
+            box-shadow: 0 0 0 3px #4fc3f7, inset 0 2px 8px rgba(0,0,0,.3);
+            animation: blinkSelected 1s infinite;
+        }
+
+        @@keyframes blinkSelected {
+            0%, 100% { box-shadow: 0 0 0 3px #4fc3f7, inset 0 2px 8px rgba(0,0,0,.3); }
+            50%       { box-shadow: 0 0 0 3px rgba(79,195,247,.3), inset 0 2px 8px rgba(0,0,0,.3); }
+        }
+
+        .tile.can-move-to-selected {
+            background: linear-gradient(145deg, #f57c00, #e65100) !important;
+            animation: pulseOrange 1.2s infinite !important;
+        }
+
+        @@keyframes pulseOrange {
+            0%, 100% { box-shadow: 0 4px 12px rgba(245,124,0,.4), inset 0 1px 0 rgba(255,255,255,.2); }
+            50%       { box-shadow: 0 4px 22px rgba(245,124,0,.8), inset 0 1px 0 rgba(255,255,255,.3); }
+        }
+
         .tile.movable {
             background: linear-gradient(145deg, #00897b, #00695c);
             animation: pulse 1.4s infinite;
@@ -260,6 +281,7 @@
         let moves = 0;
         let muted = false;
         let banglaVoice = null;
+        let selectedBlank = null;
 
         function pickVoice() {
             const voices = window.speechSynthesis.getVoices();
@@ -326,8 +348,13 @@
                     div.appendChild(label);
                     div.appendChild(wave);
 
-                    const isMovable = getNeighbours(idx).some(ni => board[ni] === '');
+                    const adjacentBlanks = getNeighbours(idx).filter(ni => board[ni] === '');
+                    const isMovable = adjacentBlanks.length > 0;
                     if (isMovable) div.classList.add('movable');
+
+                    // highlight letters that can move into the selected blank
+                    if (selectedBlank !== null && adjacentBlanks.includes(selectedBlank))
+                        div.classList.add('can-move-to-selected');
 
                     const solvedIdx = solved.indexOf(tile);
                     if (idx === solvedIdx) div.classList.add('solved-pos');
@@ -338,18 +365,37 @@
                     }
 
                     div.addEventListener('click', () => {
-                        const blanks = getNeighbours(idx).filter(ni => board[ni] === '');
-                        if (blanks.length === 1) tryMove(idx, blanks[0]);
-                        // if 2+ adjacent blanks, user must click the blank instead
+                        if (selectedBlank !== null) {
+                            // a blank is selected — move this letter there if adjacent
+                            if (adjacentBlanks.includes(selectedBlank)) {
+                                const target = selectedBlank;
+                                selectedBlank = null;
+                                tryMove(idx, target);
+                            } else {
+                                // clicked a non-adjacent letter — deselect blank
+                                selectedBlank = null;
+                                render();
+                            }
+                        } else {
+                            // no blank selected — move if only 1 adjacent blank
+                            if (adjacentBlanks.length === 1) tryMove(idx, adjacentBlanks[0]);
+                        }
                     });
                 } else {
-                    // blank tile: clickable when it has an adjacent letter
+                    // blank tile
                     const adjacentTiles = getNeighbours(idx).filter(ni => board[ni] !== '');
                     if (adjacentTiles.length > 0) {
                         div.classList.add('has-neighbour');
+                        if (selectedBlank === idx) div.classList.add('selected');
+
                         div.addEventListener('click', () => {
-                            // move the first adjacent tile into this blank
-                            tryMove(adjacentTiles[0], idx);
+                            if (selectedBlank === idx) {
+                                // clicking selected blank deselects it
+                                selectedBlank = null;
+                            } else {
+                                selectedBlank = idx;
+                            }
+                            render();
                         });
                     }
                 }
@@ -398,6 +444,7 @@
                 .then(data => {
                     board = data.board;
                     moves = 0;
+                    selectedBlank = null;
                     document.getElementById('hintPanel').classList.remove('show');
                     document.getElementById('message').textContent = '';
                     render();
