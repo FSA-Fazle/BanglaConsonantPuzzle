@@ -425,7 +425,7 @@
             const letter = board[tileIdx];
             speakLetter(letter);
 
-            fetch('/Game/Move', {
+            fetch('@Url.Action("Move", "Game")', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ tileIndex: tileIdx, blankIndex: blankIdx ?? -1 })
@@ -439,7 +439,7 @@
         }
 
         document.getElementById('btnNew').addEventListener('click', () => {
-            fetch('/Game/NewGame', { method: 'POST' })
+            fetch('@Url.Action("NewGame", "Game")', { method: 'POST' })
                 .then(r => r.json())
                 .then(data => {
                     board = data.board;
