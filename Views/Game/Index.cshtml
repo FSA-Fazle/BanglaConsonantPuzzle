@@ -266,58 +266,21 @@
         const ROWS = 9, COLS = 5;
         const solved = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.SolvedBoard));
 
-        const romanNames = {
-            "ক":"ko","খ":"kho","গ":"go","ঘ":"gho","ঙ":"ngo",
-            "চ":"cho","ছ":"chho","জ":"jo","ঝ":"jho","ঞ":"nyo",
-            "ট":"to","ঠ":"tho","ড":"do","ঢ":"dho","ণ":"no",
-            "ত":"to","থ":"tho","দ":"do","ধ":"dho","ন":"no",
-            "প":"po","ফ":"fo","ব":"bo","ভ":"bho","ম":"mo",
-            "য":"jo","র":"ro","ল":"lo","শ":"sho","ষ":"sho",
-            "স":"so","হ":"ho","ড়":"ro","ঢ়":"rho","য়":"yo",
-            "ৎ":"t","ং":"ng","ঃ":"h","ঁ":"n"
-        };
-
         let board = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Board));
         let moves = 0;
         let muted = false;
-        let banglaVoice = null;
+        let currentAudio = null;
         let selectedBlank = null;
 
-        function pickVoice() {
-            const voices = window.speechSynthesis.getVoices();
-            banglaVoice = voices.find(v => v.lang === 'bn-BD')
-                       || voices.find(v => v.lang === 'bn-IN')
-                       || voices.find(v => v.lang.startsWith('bn'))
-                       || null;
-
-            const el = document.getElementById('voiceStatus');
-            if (banglaVoice) {
-                el.textContent = `🎙 ${banglaVoice.name} (${banglaVoice.lang})`;
-                el.style.color = '#66cc88';
-            } else {
-                el.textContent = 'No Bengali voice — using romanised fallback';
-                el.style.color = '#cc9944';
-            }
-        }
-
-        if (window.speechSynthesis) {
-            window.speechSynthesis.onvoiceschanged = pickVoice;
-            pickVoice();
-        } else {
-            document.getElementById('voiceStatus').textContent = 'Speech not supported in this browser';
-        }
+        document.getElementById('voiceStatus').textContent = '🎙 Bengali (Google TTS)';
+        document.getElementById('voiceStatus').style.color = '#66cc88';
 
         function speakLetter(letter) {
-            if (muted || !letter || !window.speechSynthesis) return;
-            window.speechSynthesis.cancel();
-            const text = banglaVoice ? letter : (romanNames[letter] || letter);
-            const utter = new SpeechSynthesisUtterance(text);
-            if (banglaVoice) utter.voice = banglaVoice;
-            utter.lang = banglaVoice ? banglaVoice.lang : 'en-US';
-            utter.rate = 0.8;
-            utter.pitch = 1.1;
-            utter.volume = 1;
-            window.speechSynthesis.speak(utter);
+            if (muted || !letter) return;
+            if (currentAudio) { currentAudio.pause(); currentAudio = null; }
+            const url = '@Url.Action("Index", "Tts")?text=' + encodeURIComponent(letter);
+            currentAudio = new Audio(url);
+            currentAudio.play().catch(() => {});
         }
 
         function getNeighbours(idx) {
@@ -413,12 +376,11 @@
         }
 
         function speakSolved() {
-            if (muted || !window.speechSynthesis) return;
-            window.speechSynthesis.cancel();
-            const utter = new SpeechSynthesisUtterance('Solved! সঠিক!');
-            utter.lang = 'en-US';
-            utter.rate = 0.9;
-            window.speechSynthesis.speak(utter);
+            if (muted) return;
+            if (currentAudio) { currentAudio.pause(); currentAudio = null; }
+            const url = '@Url.Action("Index", "Tts")?text=' + encodeURIComponent('সঠিক');
+            currentAudio = new Audio(url);
+            currentAudio.play().catch(() => {});
         }
 
         function tryMove(tileIdx, blankIdx) {
@@ -460,7 +422,7 @@
             const btn = document.getElementById('btnMute');
             btn.textContent = muted ? '🔇' : '🔊';
             btn.classList.toggle('muted', muted);
-            if (muted) window.speechSynthesis && window.speechSynthesis.cancel();
+            if (muted && currentAudio) { currentAudio.pause(); currentAudio = null; }
         });
 
         document.addEventListener('keydown', e => {
