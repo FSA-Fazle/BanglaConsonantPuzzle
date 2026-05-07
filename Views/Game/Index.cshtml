@@ -1,0 +1,438 @@
+@model BanglaConsonantPuzzle.Controllers.GameViewModel
+@{
+    ViewData["Title"] = "বাংলা ব্যঞ্জনবর্ণ পাজল";
+    Layout = null;
+}
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>বাংলা ব্যঞ্জনবর্ণ পাজল</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #0d2137 0%, #1a3a5c 50%, #0d3b2e 100%);
+            font-family: 'Segoe UI', sans-serif;
+            color: #fff;
+            padding: 20px 0;
+        }
+
+        h1 {
+            font-size: 1.8rem;
+            margin-bottom: 6px;
+            letter-spacing: 2px;
+            color: #4fc3f7;
+            text-shadow: 0 2px 8px rgba(79,195,247,.4);
+        }
+
+        .subtitle {
+            font-size: 0.9rem;
+            color: #aac;
+            margin-bottom: 20px;
+        }
+
+        .board {
+            display: grid;
+            grid-template-columns: repeat(5, 72px);
+            grid-template-rows: repeat(9, 72px);
+            gap: 6px;
+            background: rgba(255,255,255,0.06);
+            padding: 12px;
+            border-radius: 16px;
+            box-shadow: 0 8px 32px rgba(0,0,0,.5);
+        }
+
+        .tile {
+            width: 72px;
+            height: 72px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            font-weight: 700;
+            border-radius: 10px;
+            cursor: pointer;
+            user-select: none;
+            position: relative;
+            overflow: hidden;
+            transition: transform .12s ease, box-shadow .12s ease, background .2s;
+            background: linear-gradient(145deg, #1565c0, #0d47a1);
+            color: #fff;
+            box-shadow: 0 4px 12px rgba(0,0,0,.4), inset 0 1px 0 rgba(255,255,255,.2);
+        }
+
+        .tile:hover {
+            transform: scale(1.06);
+            box-shadow: 0 6px 18px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.25);
+        }
+
+        .tile.empty {
+            background: rgba(255,255,255,0.04);
+            box-shadow: inset 0 2px 8px rgba(0,0,0,.4);
+            cursor: default;
+            pointer-events: none;
+        }
+
+        .tile.movable {
+            background: linear-gradient(145deg, #00897b, #00695c);
+            animation: pulse 1.4s infinite;
+        }
+
+        @@keyframes pulse {
+            0%, 100% { box-shadow: 0 4px 12px rgba(0,137,123,.4), inset 0 1px 0 rgba(255,255,255,.2); }
+            50%       { box-shadow: 0 4px 22px rgba(0,137,123,.8), inset 0 1px 0 rgba(255,255,255,.3); }
+        }
+
+        .tile.solved-pos {
+            background: linear-gradient(145deg, #2e7d32, #1b5e20);
+        }
+
+        .tile.speaking::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border-radius: 10px;
+            background: radial-gradient(circle, rgba(255,255,255,0.55) 0%, transparent 70%);
+            animation: ripple .55s ease-out forwards;
+        }
+
+        @@keyframes ripple {
+            0%   { opacity: 1; transform: scale(0.4); }
+            100% { opacity: 0; transform: scale(1.6); }
+        }
+
+        .tile .wave-icon {
+            display: none;
+            position: absolute;
+            bottom: 4px;
+            right: 5px;
+            font-size: 0.65rem;
+            opacity: 0.85;
+            animation: waveBob .4s ease-in-out infinite alternate;
+        }
+
+        .tile.speaking .wave-icon { display: block; }
+
+        @@keyframes waveBob {
+            from { transform: scaleY(1); }
+            to   { transform: scaleY(1.5); }
+        }
+
+        .controls {
+            display: flex;
+            gap: 12px;
+            margin-top: 18px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        button {
+            padding: 10px 22px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            cursor: pointer;
+            font-weight: 600;
+            transition: transform .1s, box-shadow .1s;
+        }
+
+        #btnNew {
+            background: #e53935;
+            color: #fff;
+            box-shadow: 0 4px 12px rgba(229,57,53,.4);
+        }
+        #btnNew:hover { transform: translateY(-2px); box-shadow: 0 6px 18px rgba(229,57,53,.5); }
+
+        #btnHint {
+            background: #7b1fa2;
+            color: #fff;
+            box-shadow: 0 4px 12px rgba(123,31,162,.4);
+        }
+        #btnHint:hover { transform: translateY(-2px); box-shadow: 0 6px 18px rgba(123,31,162,.5); }
+
+        #btnMute {
+            background: #00796b;
+            color: #fff;
+            box-shadow: 0 4px 12px rgba(0,121,107,.4);
+            min-width: 52px;
+        }
+        #btnMute:hover { transform: translateY(-2px); box-shadow: 0 6px 18px rgba(0,121,107,.5); }
+        #btnMute.muted { background: #455a64; box-shadow: 0 4px 12px rgba(69,90,100,.4); }
+
+        .message {
+            margin-top: 16px;
+            font-size: 1.3rem;
+            font-weight: 700;
+            min-height: 34px;
+            color: #69ff69;
+            text-shadow: 0 0 12px rgba(100,255,100,.6);
+        }
+
+        .hint-panel {
+            margin-top: 14px;
+            background: rgba(255,255,255,0.08);
+            padding: 10px 16px;
+            border-radius: 10px;
+            font-size: 1rem;
+            color: #ddd;
+            display: none;
+            max-width: 420px;
+            text-align: center;
+            line-height: 2;
+        }
+        .hint-panel.show { display: block; }
+
+        .status-row {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            margin-top: 10px;
+            font-size: 0.9rem;
+            color: #99aacc;
+        }
+
+        #voiceStatus {
+            font-size: 0.75rem;
+            color: #667;
+            font-style: italic;
+        }
+
+        .keyboard-hint {
+            font-size: 0.75rem;
+            color: #556;
+            margin-top: 6px;
+        }
+    </style>
+</head>
+<body>
+    <h1>বাংলা ব্যঞ্জনবর্ণ পাজল</h1>
+    <p class="subtitle">Bangla Consonant Sliding Puzzle — 5×9</p>
+
+    <div class="board" id="board"></div>
+
+    <div class="status-row">
+        <span>Moves: <strong id="moveCount">0</strong></span>
+        <span id="voiceStatus">Loading voice…</span>
+    </div>
+
+    <div class="controls">
+        <button id="btnNew">New Game</button>
+        <button id="btnHint">Hint</button>
+        <button id="btnMute" title="Toggle sound">🔊</button>
+    </div>
+
+    <div class="message" id="message"></div>
+
+    <div class="hint-panel" id="hintPanel">
+        Goal order:<br>
+        <strong>ক খ গ ঘ ঙ চ ছ জ ঝ ঞ ট ঠ ড ঢ ণ ত থ দ ধ ন প ফ ব ভ ম য র ল শ ষ স হ ড় ঢ় য় ৎ ং ঃ ঁ</strong>
+    </div>
+
+    <p class="keyboard-hint">Click a tile or use arrow keys &nbsp;|&nbsp; 🔊 = sound on/off</p>
+
+    <script>
+        const ROWS = 9, COLS = 5;
+        const solved = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.SolvedBoard));
+
+        const romanNames = {
+            "ক":"ko","খ":"kho","গ":"go","ঘ":"gho","ঙ":"ngo",
+            "চ":"cho","ছ":"chho","জ":"jo","ঝ":"jho","ঞ":"nyo",
+            "ট":"to","ঠ":"tho","ড":"do","ঢ":"dho","ণ":"no",
+            "ত":"to","থ":"tho","দ":"do","ধ":"dho","ন":"no",
+            "প":"po","ফ":"fo","ব":"bo","ভ":"bho","ম":"mo",
+            "য":"jo","র":"ro","ল":"lo","শ":"sho","ষ":"sho",
+            "স":"so","হ":"ho","ড়":"ro","ঢ়":"rho","য়":"yo",
+            "ৎ":"t","ং":"ng","ঃ":"h","ঁ":"n"
+        };
+
+        let board = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Board));
+        let moves = 0;
+        let muted = false;
+        let banglaVoice = null;
+
+        function pickVoice() {
+            const voices = window.speechSynthesis.getVoices();
+            banglaVoice = voices.find(v => v.lang === 'bn-BD')
+                       || voices.find(v => v.lang === 'bn-IN')
+                       || voices.find(v => v.lang.startsWith('bn'))
+                       || null;
+
+            const el = document.getElementById('voiceStatus');
+            if (banglaVoice) {
+                el.textContent = `🎙 ${banglaVoice.name} (${banglaVoice.lang})`;
+                el.style.color = '#66cc88';
+            } else {
+                el.textContent = 'No Bengali voice — using romanised fallback';
+                el.style.color = '#cc9944';
+            }
+        }
+
+        if (window.speechSynthesis) {
+            window.speechSynthesis.onvoiceschanged = pickVoice;
+            pickVoice();
+        } else {
+            document.getElementById('voiceStatus').textContent = 'Speech not supported in this browser';
+        }
+
+        function speakLetter(letter) {
+            if (muted || !letter || !window.speechSynthesis) return;
+            window.speechSynthesis.cancel();
+            const text = banglaVoice ? letter : (romanNames[letter] || letter);
+            const utter = new SpeechSynthesisUtterance(text);
+            if (banglaVoice) utter.voice = banglaVoice;
+            utter.lang = banglaVoice ? banglaVoice.lang : 'en-US';
+            utter.rate = 0.8;
+            utter.pitch = 1.1;
+            utter.volume = 1;
+            window.speechSynthesis.speak(utter);
+        }
+
+        function render(speakIdx) {
+            const boardEl = document.getElementById('board');
+            boardEl.innerHTML = '';
+
+            board.forEach((tile, idx) => {
+                const div = document.createElement('div');
+                div.className = 'tile' + (tile === '' ? ' empty' : '');
+                div.dataset.idx = idx;
+
+                if (tile !== '') {
+                    const wave = document.createElement('span');
+                    wave.className = 'wave-icon';
+                    wave.textContent = '🔊';
+
+                    const label = document.createElement('span');
+                    label.textContent = tile;
+
+                    div.appendChild(label);
+                    div.appendChild(wave);
+
+                    // Check if any adjacent cell is blank (movable)
+                    const r = Math.floor(idx / COLS), c = idx % COLS;
+                    const neighbours = [
+                        [r-1,c],[r+1,c],[r,c-1],[r,c+1]
+                    ];
+                    const isMovable = neighbours.some(([nr,nc]) => {
+                        if (nr < 0 || nr >= ROWS || nc < 0 || nc >= COLS) return false;
+                        return board[nr * COLS + nc] === '';
+                    });
+                    if (isMovable) div.classList.add('movable');
+
+                    const solvedIdx = solved.indexOf(tile);
+                    if (idx === solvedIdx) div.classList.add('solved-pos');
+
+                    if (speakIdx === idx) {
+                        div.classList.add('speaking');
+                        setTimeout(() => div.classList.remove('speaking'), 600);
+                    }
+
+                    div.addEventListener('click', () => tryMove(idx));
+                }
+
+                boardEl.appendChild(div);
+            });
+
+            document.getElementById('moveCount').textContent = moves;
+
+            const isSolved = board.every((t, i) => t === solved[i]);
+            document.getElementById('message').textContent =
+                isSolved ? '🎉 Solved! সঠিক! 🎉' : '';
+
+            if (isSolved) speakSolved();
+        }
+
+        function speakSolved() {
+            if (muted || !window.speechSynthesis) return;
+            window.speechSynthesis.cancel();
+            const utter = new SpeechSynthesisUtterance('Solved! সঠিক!');
+            utter.lang = 'en-US';
+            utter.rate = 0.9;
+            window.speechSynthesis.speak(utter);
+        }
+
+        function tryMove(tileIdx) {
+            const r = Math.floor(tileIdx / COLS), c = tileIdx % COLS;
+            const neighbours = [
+                [r-1,c],[r+1,c],[r,c-1],[r,c+1]
+            ];
+            const blankNeighbour = neighbours.find(([nr,nc]) => {
+                if (nr < 0 || nr >= ROWS || nc < 0 || nc >= COLS) return false;
+                return board[nr * COLS + nc] === '';
+            });
+            if (!blankNeighbour) return;
+
+            const letter = board[tileIdx];
+            speakLetter(letter);
+
+            fetch('/Game/Move', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ tileIndex: tileIdx })
+            })
+            .then(r => r.json())
+            .then(data => {
+                const landedIdx = blankNeighbour[0] * COLS + blankNeighbour[1];
+                board = data.board;
+                moves++;
+                render(landedIdx);
+            });
+        }
+
+        document.getElementById('btnNew').addEventListener('click', () => {
+            fetch('/Game/NewGame', { method: 'POST' })
+                .then(r => r.json())
+                .then(data => {
+                    board = data.board;
+                    moves = 0;
+                    document.getElementById('hintPanel').classList.remove('show');
+                    document.getElementById('message').textContent = '';
+                    render();
+                });
+        });
+
+        document.getElementById('btnHint').addEventListener('click', () => {
+            document.getElementById('hintPanel').classList.toggle('show');
+        });
+
+        document.getElementById('btnMute').addEventListener('click', () => {
+            muted = !muted;
+            const btn = document.getElementById('btnMute');
+            btn.textContent = muted ? '🔇' : '🔊';
+            btn.classList.toggle('muted', muted);
+            if (muted) window.speechSynthesis && window.speechSynthesis.cancel();
+        });
+
+        document.addEventListener('keydown', e => {
+            const emptyIdxes = board.map((t,i) => t === '' ? i : -1).filter(i => i !== -1);
+            let targetIdx = -1;
+
+            // Find a tile adjacent to any blank in the arrow direction
+            emptyIdxes.forEach(emptyIdx => {
+                const er = Math.floor(emptyIdx / COLS), ec = emptyIdx % COLS;
+                let tr = er, tc = ec;
+                if (e.key === 'ArrowUp'    && er < ROWS - 1) tr = er + 1;
+                else if (e.key === 'ArrowDown'  && er > 0)   tr = er - 1;
+                else if (e.key === 'ArrowLeft'  && ec < COLS - 1) tc = ec + 1;
+                else if (e.key === 'ArrowRight' && ec > 0)   tc = ec - 1;
+                else return;
+                const ti = tr * COLS + tc;
+                if (board[ti] !== '') targetIdx = ti;
+            });
+
+            if (targetIdx !== -1) {
+                e.preventDefault();
+                tryMove(targetIdx);
+            }
+        });
+
+        render();
+    </script>
+</body>
+</html>
