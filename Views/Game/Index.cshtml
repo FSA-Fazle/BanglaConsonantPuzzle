@@ -278,7 +278,7 @@
         function speakLetter(letter) {
             if (muted || !letter) return;
             if (currentAudio) { currentAudio.pause(); currentAudio = null; }
-            const url = '@Url.Action("Index", "Tts")?text=' + encodeURIComponent(letter);
+            const url = '/consonant/Tts?text=' + encodeURIComponent(letter);
             currentAudio = new Audio(url);
             currentAudio.play().catch(() => {});
         }
@@ -378,7 +378,7 @@
         function speakSolved() {
             if (muted) return;
             if (currentAudio) { currentAudio.pause(); currentAudio = null; }
-            const url = '@Url.Action("Index", "Tts")?text=' + encodeURIComponent('সঠিক');
+            const url = '/consonant/Tts?text=' + encodeURIComponent('সঠিক');
             currentAudio = new Audio(url);
             currentAudio.play().catch(() => {});
         }
@@ -387,7 +387,7 @@
             const letter = board[tileIdx];
             speakLetter(letter);
 
-            fetch('@Url.Action("Move", "Game")', {
+            fetch('/consonant/Game/Move', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ tileIndex: tileIdx, blankIndex: blankIdx ?? -1 })
@@ -401,7 +401,7 @@
         }
 
         document.getElementById('btnNew').addEventListener('click', () => {
-            fetch('@Url.Action("NewGame", "Game")', { method: 'POST' })
+            fetch('/consonant/Game/NewGame', { method: 'POST' })
                 .then(r => r.json())
                 .then(data => {
                     board = data.board;
