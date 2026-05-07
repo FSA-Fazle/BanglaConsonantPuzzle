@@ -76,8 +76,12 @@
         .tile.empty {
             background: rgba(255,255,255,0.04);
             box-shadow: inset 0 2px 8px rgba(0,0,0,.4);
-            cursor: default;
-            pointer-events: none;
+            cursor: pointer;
+        }
+
+        .tile.empty.has-neighbour:hover {
+            background: rgba(255,255,255,0.12);
+            box-shadow: inset 0 2px 8px rgba(0,0,0,.4), 0 0 10px rgba(79,195,247,.4);
         }
 
         .tile.movable {
@@ -294,6 +298,14 @@
             window.speechSynthesis.speak(utter);
         }
 
+        function getNeighbours(idx) {
+            const r = Math.floor(idx / COLS), c = idx % COLS;
+            return [
+                [r-1,c],[r+1,c],[r,c-1],[r,c+1]
+            ].filter(([nr,nc]) => nr >= 0 && nr < ROWS && nc >= 0 && nc < COLS)
+             .map(([nr,nc]) => nr * COLS + nc);
+        }
+
         function render(speakIdx) {
             const boardEl = document.getElementById('board');
             boardEl.innerHTML = '';
@@ -314,15 +326,7 @@
                     div.appendChild(label);
                     div.appendChild(wave);
 
-                    // Check if any adjacent cell is blank (movable)
-                    const r = Math.floor(idx / COLS), c = idx % COLS;
-                    const neighbours = [
-                        [r-1,c],[r+1,c],[r,c-1],[r,c+1]
-                    ];
-                    const isMovable = neighbours.some(([nr,nc]) => {
-                        if (nr < 0 || nr >= ROWS || nc < 0 || nc >= COLS) return false;
-                        return board[nr * COLS + nc] === '';
-                    });
+                    const isMovable = getNeighbours(idx).some(ni => board[ni] === '');
                     if (isMovable) div.classList.add('movable');
 
                     const solvedIdx = solved.indexOf(tile);
@@ -333,7 +337,21 @@
                         setTimeout(() => div.classList.remove('speaking'), 600);
                     }
 
-                    div.addEventListener('click', () => tryMove(idx));
+                    div.addEventListener('click', () => {
+                        const blanks = getNeighbours(idx).filter(ni => board[ni] === '');
+                        if (blanks.length === 1) tryMove(idx, blanks[0]);
+                        // if 2+ adjacent blanks, user must click the blank instead
+                    });
+                } else {
+                    // blank tile: clickable when it has an adjacent letter
+                    const adjacentTiles = getNeighbours(idx).filter(ni => board[ni] !== '');
+                    if (adjacentTiles.length > 0) {
+                        div.classList.add('has-neighbour');
+                        div.addEventListener('click', () => {
+                            // move the first adjacent tile into this blank
+                            tryMove(adjacentTiles[0], idx);
+                        });
+                    }
                 }
 
                 boardEl.appendChild(div);
@@ -357,31 +375,20 @@
             window.speechSynthesis.speak(utter);
         }
 
-        function tryMove(tileIdx) {
-            const r = Math.floor(tileIdx / COLS), c = tileIdx % COLS;
-            const neighbours = [
-                [r-1,c],[r+1,c],[r,c-1],[r,c+1]
-            ];
-            const blankNeighbour = neighbours.find(([nr,nc]) => {
-                if (nr < 0 || nr >= ROWS || nc < 0 || nc >= COLS) return false;
-                return board[nr * COLS + nc] === '';
-            });
-            if (!blankNeighbour) return;
-
+        function tryMove(tileIdx, blankIdx) {
             const letter = board[tileIdx];
             speakLetter(letter);
 
             fetch('/Game/Move', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ tileIndex: tileIdx })
+                body: JSON.stringify({ tileIndex: tileIdx, blankIndex: blankIdx ?? -1 })
             })
             .then(r => r.json())
             .then(data => {
-                const landedIdx = blankNeighbour[0] * COLS + blankNeighbour[1];
                 board = data.board;
                 moves++;
-                render(landedIdx);
+                render(blankIdx);
             });
         }
 

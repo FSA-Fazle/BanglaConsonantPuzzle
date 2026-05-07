@@ -33,21 +33,30 @@ namespace BanglaConsonantPuzzle.Controllers
             int tileRow = tileIdx / PuzzleGame.Cols;
             int tileCol = tileIdx % PuzzleGame.Cols;
 
-            // Find an adjacent blank to slide into
-            int[] dr = { -1, 1, 0, 0 };
-            int[] dc = { 0, 0, -1, 1 };
+            // Use the blank index from the client if provided and valid
             int targetIdx = -1;
-
-            for (int d = 0; d < 4; d++)
+            if (req.BlankIndex >= 0 && req.BlankIndex < board.Count
+                && board[req.BlankIndex] == PuzzleGame.Empty)
             {
-                int nr = tileRow + dr[d];
-                int nc = tileCol + dc[d];
-                if (nr < 0 || nr >= PuzzleGame.Rows || nc < 0 || nc >= PuzzleGame.Cols) continue;
-                int ni = nr * PuzzleGame.Cols + nc;
-                if (board[ni] == PuzzleGame.Empty)
+                int blankRow = req.BlankIndex / PuzzleGame.Cols;
+                int blankCol = req.BlankIndex % PuzzleGame.Cols;
+                bool adjacent = (tileRow == blankRow && System.Math.Abs(tileCol - blankCol) == 1)
+                             || (tileCol == blankCol && System.Math.Abs(tileRow - blankRow) == 1);
+                if (adjacent) targetIdx = req.BlankIndex;
+            }
+
+            // Fallback: find first adjacent blank
+            if (targetIdx == -1)
+            {
+                int[] dr = { -1, 1, 0, 0 };
+                int[] dc = { 0, 0, -1, 1 };
+                for (int d = 0; d < 4; d++)
                 {
-                    targetIdx = ni;
-                    break;
+                    int nr = tileRow + dr[d];
+                    int nc = tileCol + dc[d];
+                    if (nr < 0 || nr >= PuzzleGame.Rows || nc < 0 || nc >= PuzzleGame.Cols) continue;
+                    int ni = nr * PuzzleGame.Cols + nc;
+                    if (board[ni] == PuzzleGame.Empty) { targetIdx = ni; break; }
                 }
             }
 
@@ -95,5 +104,6 @@ namespace BanglaConsonantPuzzle.Controllers
     public class MoveRequest
     {
         public int TileIndex { get; set; }
+        public int BlankIndex { get; set; } = -1;
     }
 }
