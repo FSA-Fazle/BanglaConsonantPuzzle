@@ -398,7 +398,7 @@
 
             const isSolved = board.every((t, i) => t === solved[i]);
             document.getElementById('message').textContent =
-                isSolved ? '🎉 Solved! সঠিক! 🎉' : '';
+                isSolved ? '🎉 Solved! ঠিক হয়েছে! 🎉' : '';
 
             if (isSolved && !celebrationPlayed) {
                 celebrationPlayed = true;
@@ -410,7 +410,7 @@
         function speakSolved() {
             if (muted) return;
             if (currentAudio) { currentAudio.pause(); currentAudio = null; }
-            const url = '/consonant/Tts?text=' + encodeURIComponent('সঠিক');
+            const url = '/consonant/Tts?text=' + encodeURIComponent('ঠিক হয়েছে');
             currentAudio = new Audio(url);
             currentAudio.play().catch(() => {});
         }
