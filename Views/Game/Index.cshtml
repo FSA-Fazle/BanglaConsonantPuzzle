@@ -234,6 +234,29 @@
             color: #556;
             margin-top: 6px;
         }
+
+        .version-links {
+            margin-top: 14px;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: center;
+            font-size: 0.9rem;
+        }
+
+        .version-links a {
+            color: #4fc3f7;
+            text-decoration: none;
+            padding: 6px 14px;
+            border: 1px solid #4fc3f7;
+            border-radius: 20px;
+            transition: background .2s, color .2s;
+        }
+
+        .version-links a:hover {
+            background: #4fc3f7;
+            color: #000;
+        }
     </style>
 </head>
 <body>
@@ -261,6 +284,10 @@
     </div>
 
     <p class="keyboard-hint">Click a tile or use arrow keys &nbsp;|&nbsp; 🔊 = sound on/off</p>
+    <div class="version-links">
+        <a href="https://banglaclass.ca/vowel/">স্বরবর্ণ পাজল (Vowel Puzzle)</a>
+        <a href="https://banglaclass.ca/vowel_easy/">স্বরবর্ণ পাজল — সহজ (Vowel Easy)</a>
+    </div>
 
     <script>
         const ROWS = 9, COLS = 5;
